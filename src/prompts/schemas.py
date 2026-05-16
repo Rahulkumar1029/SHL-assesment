@@ -58,6 +58,11 @@ class ComparisonResponse(BaseModel):
         description="Clear comparison explanation drawn from retrieved catalog data"
     )
 
+    recommendations: List[RecommendationItem] = Field(
+        default_factory=list,
+        description="List of the SHL assessments being compared, to display as cards"
+    )
+
 
 class ClarificationResponse(BaseModel):
 

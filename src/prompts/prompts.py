@@ -111,6 +111,7 @@ Your comparison should:
 - explain assessment focus differences
 - explain ideal usage scenarios
 - remain concise and grounded
+- ALWAYS populate the `recommendations` array with the structured metadata (name, URL, test_type) of the specific assessments you are comparing, exactly as they appear in the retrieved context.
 
 If information is missing from the catalog,
 say that explicitly.

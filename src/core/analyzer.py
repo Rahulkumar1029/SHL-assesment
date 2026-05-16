@@ -20,16 +20,27 @@ from src.prompts.schemas import (
 from src.core.retrieval import hybrid_search
 
 
+import json
+
 def build_conversation_text(messages):
     conversation_text = ""
     for msg in messages:
         if isinstance(msg, dict):
             role = msg["role"].upper()
-            content = msg["content"]
+            content = msg.get("content", "")
+            extra = {k: v for k, v in msg.items() if k not in ("role", "content")}
         else:
             role = msg.type.upper()
             content = msg.content
+            extra = msg.additional_kwargs
+            
         conversation_text += f"{role}: {content}\n"
+        if extra:
+            try:
+                # Append extra metadata (e.g. past recommendations) for context
+                conversation_text += f"Additional Context: {json.dumps(extra)}\n"
+            except Exception:
+                pass
     return conversation_text
 
 
@@ -386,9 +397,15 @@ IMPORTANT:
 """
         )
 
+        # Validate: only include recommendations whose names appear in retrieved docs
+        valid_names = {doc.metadata["name"] for doc in retrieved_docs}
+        filtered_recommendations = [
+            rec for rec in response.recommendations if rec.name in valid_names
+        ]
+
         return {
             "reply": response.reply,
-            "recommendations": [],
+            "recommendations": filtered_recommendations,
             "end_of_conversation": False,
         }
 

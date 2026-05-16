@@ -22,6 +22,10 @@ graph_instance = None
 class Message(BaseModel):
     role: str
     content: str
+    
+    model_config = {
+        "extra": "allow"
+    }
 
 
 class ChatRequest(BaseModel):
@@ -58,11 +62,11 @@ app = FastAPI(
 def convert_messages(messages: List[Message]):
     converted = []
     for msg in messages:
+        extra = msg.model_dump(exclude={"role", "content"})
         if msg.role == "assistant":
-            converted.append(AIMessage(content=msg.content))
+            converted.append(AIMessage(content=msg.content, additional_kwargs=extra))
         else:
-            # Treat "user", "human", or any unknown role (e.g. Swagger default "string") as HumanMessage
-            converted.append(HumanMessage(content=msg.content))
+            converted.append(HumanMessage(content=msg.content, additional_kwargs=extra))
     return converted
 
 
@@ -80,11 +84,12 @@ def _run_graph_traced(messages_dicts: list) -> dict:
     """
     converted = []
     for m in messages_dicts:
+        extra = {k: v for k, v in m.items() if k not in ("role", "content")}
         if m["role"] == "assistant":
-            converted.append(AIMessage(content=m["content"]))
+            converted.append(AIMessage(content=m["content"], additional_kwargs=extra))
         else:
             # Treat "user", "human", or unknown roles like Swagger's "string" as HumanMessage
-            converted.append(HumanMessage(content=m["content"]))
+            converted.append(HumanMessage(content=m["content"], additional_kwargs=extra))
 
     result = graph_instance.invoke(converted)
 
@@ -121,10 +126,8 @@ async def health_check():
 async def chat_endpoint(request: ChatRequest):
     try:
         # Convert to plain dicts so @traceable can serialize the input cleanly
-        messages_dicts = [
-            {"role": m.role, "content": m.content}
-            for m in request.messages
-        ]
+        # Convert to plain dicts including any extra fields (like 'recommendations')
+        messages_dicts = [m.model_dump() for m in request.messages]
 
         result = _run_graph_traced(messages_dicts)
 
