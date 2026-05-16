@@ -1,0 +1,9 @@
+{
+    "dependencies": [
+        "."
+    ],
+    "graphs": {
+        "shl_agent": "langgraph_app:graph"
+    },
+    "env": ".env"
+}
